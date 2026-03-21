@@ -71,8 +71,6 @@ echo ==== Job started at `date` ====
 nvidia-smi
 echo
 
-cd {output_dir}
-
 {PYTHON_PATH} \
     {script} \
     {args}
