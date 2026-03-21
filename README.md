@@ -33,7 +33,7 @@ Submit GPU compute jobs to Slurm clusters. Handles:
 - GPU type selection (V100, A100, A800, H200, etc.)
 - Node scheduling
 - Log file management
- - Cluster rules: submit from `~/private/homefile` and **always specify GPU model** in `--gres`
+- Cluster rules: submit from `~/private/homefile` and **always specify GPU model** in `--gres`
 
 **Usage:**
 ```
