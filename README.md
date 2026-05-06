@@ -1,67 +1,73 @@
-# Claude Code Skills for HPC
+# Claude Code Skills — QuantumBFS
 
-A collection of Claude Code skills for high-performance computing workflows, focusing on Slurm cluster job submission.
+A small marketplace of [Claude Code](https://code.claude.com) plugins, each shipping one skill.
 
-## What are Claude Code Skills?
+## Install
 
-Skills are reusable prompt templates that extend Claude Code's capabilities. They live in `.claude/skills/` and can be invoked with `/skill-name`.
+In Claude Code, add this repo as a marketplace, then install whichever plugin(s) you want:
 
-## Installation
+```text
+/plugin marketplace add QuantumBFS/claude-code-skills
+/plugin install download-papers@quantum-bfs
+/plugin install submit-slurm-job@quantum-bfs
+```
 
-1. Copy the skill directory to your project:
-   ```bash
-   cp -r submit-slurm-job /path/to/your/project/.claude/skills/
-   ```
+The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
 
-2. Configure paths in your project's `.claude/CLAUDE.md`:
-   ```markdown
-   ## Slurm Configuration
+To update later:
 
-   - PYTHON_PATH: `/path/to/miniconda3/envs/myenv/bin/python3`
-   - PROJECT_DIR: `/home/your_user/private/homefile`   # scripts/logs must live here
-   - PARTITION: `home`                                 # compute partition
-   ```
+```text
+/plugin marketplace update quantum-bfs
+```
 
-3. Restart Claude Code or reload the project.
+## Plugins
 
-## Available Skills
+### `download-papers`
+
+Download an academic paper as a PDF given a URL, DOI, paper title, or arXiv ID. Resolves in order: open web (author homepage, repositories) → Sci-Hub mirrors → arXiv.
+
+Triggers on phrases like *"download paper"*, *"get me the PDF"*, *"fetch this DOI"*. No configuration required.
 
 ### `submit-slurm-job`
 
-Submit GPU compute jobs to Slurm clusters. Handles:
-- Automatic sbatch script generation
-- GPU type selection (V100, A100, A800, H200, etc.)
-- Node scheduling
-- Log file management
-- Cluster rules: submit from `~/private/homefile` and **always specify GPU model** in `--gres`
+Generate and submit `sbatch` scripts for GPU compute jobs on a Slurm cluster. Handles partition selection, explicit GPU model in `--gres`, full Python path, and log file management.
 
-**Usage:**
-```
-/submit-slurm-job
-```
+**Required configuration** — add to your project's `CLAUDE.md`:
 
-Claude will ask you for job parameters (script path, GPU type, memory, etc.) and generate + submit the sbatch script.
+```markdown
+## Slurm Configuration
 
-**Example:**
-```
-User: /submit-slurm-job
-Claude: What would you like to run?
-User: Train my model with train.py --epochs 100
-Claude: [generates and submits job]
+- PYTHON_PATH: `/path/to/miniconda3/envs/myenv/bin/python3`
+- PROJECT_DIR: `/home/your_user/private/homefile`   # scripts/logs must live here
+- PARTITION: `home`                                 # compute partition
 ```
 
-## Requirements
+Invoke with `/submit-slurm-job` (or just describe the job — Claude will pick up the skill).
 
-- Slurm cluster with GPU nodes
-- Claude Code (formerly AWS Code)
-- Python environment for your compute jobs
+## Repository layout
+
+```
+.
+├── .claude-plugin/
+│   └── marketplace.json          # marketplace manifest, lists all plugins
+└── plugins/
+    ├── download-papers/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/download-papers/SKILL.md
+    └── submit-slurm-job/
+        ├── .claude-plugin/plugin.json
+        └── skills/submit-slurm-job/SKILL.md
+```
 
 ## Contributing
 
-Contributions welcome! Please ensure:
-- Skills are well-documented
-- Paths are parameterized (no hardcoded user paths)
-- Examples are included
+Add a new plugin by:
+
+1. Create `plugins/<your-plugin>/.claude-plugin/plugin.json` (use one of the existing files as a template).
+2. Add the skill at `plugins/<your-plugin>/skills/<your-plugin>/SKILL.md` with YAML frontmatter (`name`, `description`).
+3. Append an entry to `.claude-plugin/marketplace.json`.
+
+Keep skills well-scoped, parameterize any user-specific paths, and document required configuration in this README.
 
 ## License
 

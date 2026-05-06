@@ -1,0 +1,11 @@
+{
+  "name": "download-papers",
+  "description": "Download academic papers as PDFs given a URL, DOI, title, or arXiv ID. Tries open web → Sci-Hub → arXiv.",
+  "version": "0.1.0",
+  "author": {
+    "name": "QuantumBFS"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}

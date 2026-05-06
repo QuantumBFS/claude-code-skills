@@ -1,0 +1,18 @@
+{
+  "name": "quantum-bfs",
+  "owner": {
+    "name": "QuantumBFS"
+  },
+  "plugins": [
+    {
+      "name": "download-papers",
+      "source": "./plugins/download-papers",
+      "description": "Download academic papers as PDFs given a URL, DOI, title, or arXiv ID. Tries open web → Sci-Hub → arXiv."
+    },
+    {
+      "name": "submit-slurm-job",
+      "source": "./plugins/submit-slurm-job",
+      "description": "Submit GPU compute jobs to a Slurm cluster: sbatch script generation, GPU type selection, log management."
+    }
+  ]
+}

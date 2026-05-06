@@ -1,0 +1,11 @@
+{
+  "name": "submit-slurm-job",
+  "description": "Submit GPU compute jobs to a Slurm cluster: sbatch script generation, GPU type selection, log management.",
+  "version": "0.1.0",
+  "author": {
+    "name": "QuantumBFS"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}
