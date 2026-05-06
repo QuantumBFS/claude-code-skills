@@ -7,6 +7,7 @@ Compare bibliographic information between ref.bib and ref_.bib
 import sys
 import os
 import re
+import json
 from difflib import SequenceMatcher
 
 def parse_bib_entries(filepath):

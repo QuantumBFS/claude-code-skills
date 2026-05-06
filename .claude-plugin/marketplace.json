@@ -13,6 +13,11 @@
       "name": "submit-slurm-job",
       "source": "./plugins/submit-slurm-job",
       "description": "Submit GPU compute jobs to a Slurm cluster: sbatch script generation, GPU type selection, log management."
+    },
+    {
+      "name": "verify-references",
+      "source": "./plugins/verify-references",
+      "description": "Verify BibTeX references against CrossRef metadata. Finds uncited entries and flags metadata discrepancies."
     }
   ]
 }

@@ -22,7 +22,7 @@ When this skill is invoked, you must:
 
 ## Step 1: Check Unused References
 
-1. Run: `python ~/.claude/skills/verify-references/check_unused_refs.py <bib_file> <tex_dir>`
+1. Run: `python ${CLAUDE_SKILL_DIR}/check_unused_refs.py <bib_file> <tex_dir>`
 
 2. Parse JSON output and write to report file:
    - Create report with header "# Bibliography Verification Report"
@@ -36,7 +36,7 @@ When this skill is invoked, you must:
 
 2. Tell user: "Downloading CrossRef metadata. You can monitor progress in real-time by viewing `<full_path_to_ref_crossref.bib>`"
 
-3. Run: `python -u ~/.claude/skills/verify-references/download_crossref.py <bib_file> <output_file>`
+3. Run: `python -u ${CLAUDE_SKILL_DIR}/download_crossref.py <bib_file> <output_file>`
    - Queries CrossRef API for all entries with DOIs
    - Generates a CrossRef version of the bib file for comparison
    - Maintains the same entry order as the original file
@@ -49,7 +49,7 @@ When this skill is invoked, you must:
 
 ## Step 3: Generate Comparison Report
 
-1. Run: `python ~/.claude/skills/verify-references/compare_refs.py <bib_file> <crossref_bib> <report_file>`
+1. Run: `python ${CLAUDE_SKILL_DIR}/compare_refs.py <bib_file> <crossref_bib> <report_file>`
    - Use the same `<bib_file_dir>/verification_report.md` from Step 1
    - Compares original bib file with CrossRef version
    - Identifies discrepancies in metadata fields

@@ -1,0 +1,11 @@
+{
+  "name": "verify-references",
+  "description": "Verify and validate BibTeX references against CrossRef metadata. Finds uncited entries and flags discrepancies in title/author/journal/volume/pages/year.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Zihang Li"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}
