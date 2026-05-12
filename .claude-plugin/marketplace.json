@@ -18,6 +18,11 @@
       "name": "verify-references",
       "source": "./plugins/verify-references",
       "description": "Verify BibTeX references against CrossRef metadata. Finds uncited entries and flags metadata discrepancies."
+    },
+    {
+      "name": "paper-review-checklist",
+      "source": "./plugins/paper-review-checklist",
+      "description": "Review a LaTeX research-paper draft against a fixed checklist and insert inline author-comment reminders."
     }
   ]
 }

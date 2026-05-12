@@ -1,0 +1,11 @@
+{
+  "name": "paper-review-checklist",
+  "description": "Review a LaTeX research-paper draft against a fixed checklist (notation, figures, citations, structure, equations, style, reproducibility) and insert inline author-comment reminders.",
+  "version": "0.1.0",
+  "author": {
+    "name": "QuantumBFS"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}

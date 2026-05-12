@@ -11,6 +11,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install download-papers@quantum-bfs
 /plugin install submit-slurm-job@quantum-bfs
 /plugin install verify-references@quantum-bfs
+/plugin install paper-review-checklist@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -55,6 +56,14 @@ Verify a BibTeX bibliography against CrossRef metadata. The skill:
 
 Useful before submission to catch hallucinated or stale BibTeX. Invoke by asking to *"verify references"* / *"check the bib file"*. Requires Python 3 and an internet connection (for the CrossRef API).
 
+### `paper-review-checklist`
+
+Review a LaTeX research-paper draft against a fixed checklist (notation, figures, citations, structure, equations, style, reproducibility) and insert inline author-comment reminders at the locations that fail each check.
+
+The skill reads the entire `.tex`, runs programmatic checks (broken `\ref`/`\cite`, unreferenced equation labels, symbol-synonym pairs, one-use acronyms), then walks the checklist category by category and inserts short `\lw{...}` notes (or `\todo{...}` — whichever author-comment macro the project's preamble defines). Ends with a per-category summary and the top three most impactful issues.
+
+Invoke by asking to *"review my paper"* / *"apply the paper-review checklist to file X"*.
+
 ## Repository layout
 
 ```
@@ -68,13 +77,16 @@ Useful before submission to catch hallucinated or stale BibTeX. Invoke by asking
     ├── submit-slurm-job/
     │   ├── .claude-plugin/plugin.json
     │   └── skills/submit-slurm-job/SKILL.md
-    └── verify-references/
+    ├── verify-references/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/verify-references/
+    │       ├── SKILL.md
+    │       ├── check_unused_refs.py
+    │       ├── compare_refs.py
+    │       └── download_crossref.py
+    └── paper-review-checklist/
         ├── .claude-plugin/plugin.json
-        └── skills/verify-references/
-            ├── SKILL.md
-            ├── check_unused_refs.py
-            ├── compare_refs.py
-            └── download_crossref.py
+        └── skills/paper-review-checklist/SKILL.md
 ```
 
 Helper scripts shipped alongside a `SKILL.md` are referenced from the skill instructions via `${CLAUDE_SKILL_DIR}`, which Claude Code expands to the skill's install directory at invocation time.
