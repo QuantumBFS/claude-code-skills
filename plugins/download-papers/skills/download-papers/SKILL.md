@@ -1,45 +1,36 @@
 ---
 name: download-papers
-description: Use when the user asks to download an academic paper or get the PDF — given a URL, DOI, paper title, or citation. Resolves in order: open-web (author homepage, repositories) → Sci-Hub mirrors → arXiv. Triggers on phrases like "download paper", "get me the PDF", "fetch this paper", "get this DOI".
+description: Use when the user asks to download an academic paper or get the PDF — given a URL, DOI, paper title, or citation. Uses the bundled helper script as the default path for DOI/URL/PDF downloads, with open-web and arXiv lookup as fallbacks for title-only requests. Triggers on phrases like "download paper", "get me the PDF", "fetch this paper", "get this DOI".
 ---
 
 # Download Papers
 
-Goal: get the PDF onto the local filesystem with minimum friction. Try in this order — stop at the first hit.
+Goal: get the PDF onto the local filesystem with minimum friction. The helper script is the default path once you have a DOI, URL, or direct PDF link.
 
-## Resolution order
+## Default workflow
 
-### 1. Easy open-web hit
+1. If the user gives a DOI, URL, or direct PDF link, run:
+   ```bash
+   python ${CLAUDE_SKILL_DIR}/scripts/download_paper.py "<DOI_OR_URL>" --out-dir papers
+   ```
+2. Read the JSON output. On `status: "ok"`, report the `local_path`. On `status: "error"`, summarize the attempted URLs and try the fallback workflow below.
+3. If the user gives only a title or citation, search for a DOI or PDF URL first, then pass that result to the helper script.
+
+The helper resolves DOI or URL inputs, extracts embedded PDF links from HTML pages, prints JSON with `status`, `pdf_url`, and `local_path`, and verifies that the downloaded file starts with the PDF magic bytes.
+
+## Fallback workflow
+
+### 1. Find an open-web source
 Search the web for a freely available copy:
 - Google Scholar / general web search for the title; look for `[PDF]` links
 - Author's personal homepage / institutional page (often hosts preprints)
 - Lab group "Publications" page
 - INSPIRE-HEP, NASA ADS, OSTI, ResearchGate (sometimes), university repositories
 
-If a direct PDF URL turns up, fetch it:
-```bash
-curl -L -o paper.pdf "<URL>"
-```
+When a direct PDF URL or article URL turns up, pass it to the helper script.
 
-### 2. Sci-Hub
-For paywalled DOIs, try Sci-Hub mirrors in order — they rotate availability:
-- `https://sci-hub.se/<DOI>`
-- `https://sci-hub.st/<DOI>`
-- `https://sci-hub.ru/<DOI>`
-- `https://sci-hub.ee/<DOI>`
-
-The DOI suffix is appended literally (parentheses and slashes included). Example:
-```
-https://sci-hub.se/10.1016/0550-3213(92)90424-A
-```
-
-Sci-Hub returns an HTML wrapper with an embedded PDF; the actual file lives at a URL inside an `<iframe src="...">` or `<embed src="...">`. Fetch the page, extract that URL, then download:
-```bash
-curl -sL "https://sci-hub.se/<DOI>" | grep -oE 'src="[^"]*\.pdf[^"]*"' | head -1
-```
-
-### 3. arXiv
-Search arXiv by title/author. Useful when the published version is paywalled but a preprint exists:
+### 2. arXiv
+Search arXiv by title/author. Useful when the published version is unavailable but a preprint exists:
 - `https://arxiv.org/abs/<id>` → PDF at `https://arxiv.org/pdf/<id>`
 - For papers before ~Aug 1991 (cond-mat launch), arXiv won't have it — stop here and tell the user no PDF was found.
 
@@ -51,11 +42,10 @@ Search arXiv by title/author. Useful when the published version is paywalled but
 - **Elsevier / ScienceDirect:** "Download PDF"
 - **Wiley:** "PDF" in tools section
 - **APS (Physical Review):** "PDF" in article header
-- **World Scientific (Mod. Phys. Lett., Int. J. Mod. Phys.):** "PDF" link; often Sci-Hub-only
+- **World Scientific (Mod. Phys. Lett., Int. J. Mod. Phys.):** "PDF" link
 - **arXiv:** direct PDF link
 
 ## Tips
 
-- Always verify the downloaded file is a valid PDF (`file paper.pdf` should report `PDF document`); Sci-Hub mirrors sometimes serve CAPTCHA HTML when rate-limited.
-- If a mirror returns a CAPTCHA page, switch to a different `.se`/`.st`/`.ru` mirror.
+- Always verify the downloaded file is a valid PDF; the helper script checks PDF magic bytes.
 - Save to a meaningful filename: `<firstauthor><year>_<shorttitle>.pdf`.
