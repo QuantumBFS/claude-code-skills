@@ -1,6 +1,6 @@
 ---
 name: paper-review-checklist
-description: Use when the user asks to review a research-paper draft (typically LaTeX). Walks a fixed checklist of common issues — notation, figures, citations, structure, equations, style, reproducibility — and inserts inline author-comment reminders at locations that fail each check. Triggers on phrases like "review my paper", "check my draft", "apply the checklist".
+description: Use when the user asks to review a research-paper draft (typically LaTeX) or a related text (reply-to-referee, thesis chapter, technical note). Walks a fixed checklist of common issues — notation, figures, citations, structure, equations, style, reproducibility — and inserts inline author-comment reminders at locations that fail each check. Triggers on phrases like "review my paper", "check my draft", "apply the checklist", "review as a PRB reviewer".
 ---
 
 # Paper Review Checklist
@@ -8,6 +8,13 @@ description: Use when the user asks to review a research-paper draft (typically 
 Use this skill when reviewing a research-paper draft. The goal is to walk the checklist below, examine the draft systematically, and **insert inline author-comment macros at the relevant locations in the .tex source** so the author sees the feedback in context.
 
 The default comment macro is whatever the project's preamble defines for author notes — e.g. `\lw{...}`, `\todo{...}`, or a custom command. Check the preamble first; if no such macro exists, fall back to `\todo{...}` (the `todonotes` package). Examples in this skill use `\lw{...}`.
+
+## Core principles
+
+Two rules govern everything below. When a checklist item conflicts with either, the rule wins.
+
+1. **Flag, never rewrite.** Insert short reminders so the author sees the issue in context. Do not rephrase prose, restructure paragraphs, or "improve" wording. The author's voice and specific phrasing are deliberate — preserve them. The skill produces comments, not edits.
+2. **Zero fabrication.** Never invent citations, attributions, numerical values, or "well-known" consensus. When verifying a claim, fetch the source or say "I could not verify this". Memory of a fact is not a source.
 
 ## Workflow
 
@@ -42,7 +49,7 @@ Run these before subjective review:
 8. Parameters used in each figure are stated explicitly inside the figure or its caption.
 
 ### C. Citations & literature
-9. Every citation has been verified — author, year, journal, DOI — no hallucinated references.
+9. Every citation has been verified — author, year, journal, DOI — no hallucinated references. The same standard extends to attribution claims ("X et al. showed…"), numerical values quoted from prior work, and consensus statements ("it is well known that…"). If you cannot verify a claim from a source, flag it; do not let it pass on the strength of memory. For systematic bibliography checking against CrossRef, defer to the `verify-references` skill.
 10. Every numerical claim attributed to others has a verifiable source.
 11. Cite the original work, not just a review, when stating a specific result.
 12. Acknowledge contemporary or closely related work; do not claim novelty without verifying.
@@ -80,6 +87,13 @@ Reserve `\lw{...}` comments for items that genuinely fall short on the checklist
 
 When in doubt, do not flag. A draft with 50 review comments is harder to act on than one with 10 well-chosen ones.
 
+## What this skill does NOT do
+
+- It does **not** rewrite, paraphrase, shorten, or "polish" the author's prose. Edits to the manuscript are limited to inserting `\lw{...}` comments at the issue location.
+- It does **not** propose structural reorganization (moving sections, merging paragraphs, reshuffling figures). Comment on a structural issue if it falls on the checklist; the author decides whether to act.
+- It does **not** judge scientific correctness of results or the validity of the physics — only how the manuscript communicates them. A PRB-reviewer-style scientific assessment is a separate task; the user will ask for it explicitly (e.g., "review this paper as a PRB reviewer") and that mode produces a referee report, not inline comments.
+- It does **not** invent items beyond the checklist. If something feels off but does not match an item, mention it in the final summary as a single sentence rather than as a `\lw{...}` comment.
+
 ## Comment format examples
 
 ```
@@ -92,6 +106,17 @@ When in doubt, do not flag. A draft with 50 review comments is harder to act on 
 \lw{equation never referenced --- remove number}
 \lw{\ref{fig:foo} --- does this label exist?}
 ```
+
+## Common notation traps
+
+Concrete patterns that have recurred across real drafts — useful seeds when scanning category A:
+
+- **Symbol with two meanings in one paper.** `N_s` used both for sample count and number of sites; `N` used for system size in one section, batch size in another.
+- **Synonymous symbols for the same quantity.** `\avg{s}` vs. `\avg{\sign}`; `\Delta n_l` vs. `\Delta K_t`; `x` vs. `\mathcal{C}` vs. `C` for a configuration.
+- **Field-convention clashes.** `\tau` repurposed as a parity index in a QMC paper (where `\tau` is universally imaginary time); `\beta` reused as a learning-rate hyperparameter in a paper that also reports temperature.
+- **Drifting measure / averaging brackets.** Switching between `\mathbb{E}_p[\cdot]`, `\avg{\cdot}_{|W|}`, and `\langle\cdot\rangle_p` for the same average.
+
+When such a trap is found, flag at the first occurrence and add one global `\lw{}` at the top of the section listing the pair — not at every instance.
 
 ## Summary format
 
