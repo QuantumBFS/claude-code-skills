@@ -12,6 +12,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install submit-slurm-job@quantum-bfs
 /plugin install verify-references@quantum-bfs
 /plugin install paper-review-checklist@quantum-bfs
+/plugin install distill-feedback-from-history@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -64,6 +65,20 @@ The skill reads the entire `.tex`, runs programmatic checks (broken `\ref`/`\cit
 
 Invoke by asking to *"review my paper"* / *"apply the paper-review checklist to file X"*.
 
+### `distill-feedback-from-history`
+
+Mine your own local Claude Code session history (`~/.claude/projects/`) for **recurring behavioral feedback** — corrections, format/voice edicts, error catches, domain-knowledge injections — and distill each pattern into the right kind of artifact:
+
+- **CLAUDE.md addition** (default) — the natural home for discipline rules and preferences.
+- **Auto-memory feedback entry** — alternative for the same content if you prefer the harness memory system.
+- **SKILL.md draft** — only when the pattern describes a parameterizable multi-step workflow. Rare; behavioral patterns are not workflows.
+
+The pipeline runs in eight phases: extract → tag (regex) → domain-injection (LLM) + filter → cluster → classify into a bucket → distill (autonomous or A/B/C/D/E gate) → render → hand back. Default scope is all projects, last 30 days.
+
+Invoke by asking to *"distill recurring feedback from my sessions"* / *"what should I add to CLAUDE.md?"* / *"find behavioral patterns I should write down"*. Single-user, local-only; reads JSONLs and writes drafts to `./distilled/`, no network calls, no auto-install.
+
+**Note:** This plugin replaces the earlier `extract-skills-from-history`, which mis-rendered behavioral rules as standalone `SKILL.md` files. The new name and bucketed output reflect that most patterns mined this way are memories, not skills.
+
 ## Repository layout
 
 ```
@@ -84,9 +99,17 @@ Invoke by asking to *"review my paper"* / *"apply the paper-review checklist to 
     │       ├── check_unused_refs.py
     │       ├── compare_refs.py
     │       └── download_crossref.py
-    └── paper-review-checklist/
+    ├── paper-review-checklist/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/paper-review-checklist/SKILL.md
+    └── distill-feedback-from-history/
         ├── .claude-plugin/plugin.json
-        └── skills/paper-review-checklist/SKILL.md
+        └── skills/distill-feedback-from-history/
+            ├── SKILL.md
+            └── scripts/
+                ├── extract_turns.py
+                ├── tag_turns.py
+                └── write_artifact.py
 ```
 
 Helper scripts shipped alongside a `SKILL.md` are referenced from the skill instructions via `${CLAUDE_SKILL_DIR}`, which Claude Code expands to the skill's install directory at invocation time.

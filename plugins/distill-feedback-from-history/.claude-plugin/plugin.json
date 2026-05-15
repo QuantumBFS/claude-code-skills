@@ -1,0 +1,11 @@
+{
+  "name": "distill-feedback-from-history",
+  "description": "Mine the user's local Claude Code session JSONLs for recurring behavioral feedback — corrections, format/voice edicts, error catches, domain-knowledge injections — and distill each pattern into a CLAUDE.md addition (default), an auto-memory feedback entry, or a SKILL.md draft (rare: only when a true multi-step workflow is detected).",
+  "version": "0.2.0",
+  "author": {
+    "name": "QuantumBFS"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}
