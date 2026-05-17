@@ -1,51 +1,116 @@
 ---
 name: download-papers
-description: Use when the user asks to download an academic paper or get the PDF — given a URL, DOI, paper title, or citation. Uses the bundled helper script as the default path for DOI/URL/PDF downloads, with open-web and arXiv lookup as fallbacks for title-only requests. Triggers on phrases like "download paper", "get me the PDF", "fetch this paper", "get this DOI".
+description: Use when the user asks to download an academic paper or get the PDF — given a URL, DOI, paper title, or citation. The agent resolves discovery (Unpaywall, arXiv, author page, sci-hub) into a single candidate URL, then hands it to the bundled helper which does only the fetch-and-verify step. Triggers on phrases like "download paper", "get me the PDF", "fetch this paper", "get this DOI".
 ---
 
 # Download Papers
 
-Goal: get the PDF onto the local filesystem with minimum friction. The helper script is the default path once you have a DOI, URL, or direct PDF link.
+Goal: put a verified PDF on local disk with minimum friction. **The agent
+does discovery; the helper script does the narrow download.** This split
+keeps the script reliable and lets the agent use its full toolset (web
+search, MCP lookups, judgement about which mirror is up today) for the
+parts that need judgement.
 
-## Default workflow
+## Workflow
 
-1. If the user gives a DOI, URL, or direct PDF link, run:
+1. **Resolve the user's request to one candidate URL.** Start from the
+   highest-quality source and stop as soon as you have a plausible link:
+
+   | Input | Discovery order |
+   |---|---|
+   | Direct PDF URL | use as-is |
+   | arXiv ID or arXiv abs page | use `https://arxiv.org/pdf/<id>` |
+   | DOI or publisher URL | (a) → (b) → (c) → (d) → (e) below |
+   | Title or citation only | search arXiv first; if found, jump to arXiv path. Otherwise web-search for a DOI or PDF URL and follow the DOI path |
+
+   For DOIs:
+
+   - **(a) Unpaywall** — query
+     `https://api.unpaywall.org/v2/<DOI>?email=anonymous@example.com`.
+     Returns JSON; if `is_oa` is true, the candidate URL is
+     `best_oa_location.url_for_pdf` (fall back to `best_oa_location.url`
+     if the PDF field is null). Unpaywall is free, legitimate, and
+     fast — the right primary check.
+   - **(b) arXiv preprint of the same DOI.** Many published papers have
+     a preprint on arXiv. Search by title/author; the arXiv API supports
+     `query=ti:"…" AND au:"…"`.
+   - **(c) Author homepage or institutional repository.** Web-search
+     `site:<author-domain> "<paper title>" filetype:pdf` or look at the
+     author's "Publications" page. Older Nobel-laureate papers often
+     surface here.
+   - **(d) Publisher page itself.** Sometimes serves a free PDF (editor's
+     pick, open-access trial, transitional OA). Worth trying once.
+   - **(e) Sci-Hub** — last resort. Try a current mirror
+     (`sci-hub.{se,st,ru,ee,ren,box}` — list goes stale, expect attrition).
+     The Sci-Hub landing page is HTML with the PDF embedded via
+     `<embed src="//…/uploads/…/paper.pdf">`. **You can hand that landing
+     page URL straight to the helper** — it will extract the embed and
+     fetch the PDF, no extra parsing needed. Note: probing Sci-Hub
+     mirrors from inside the agent harness may be blocked by the
+     auto-mode classifier; if so, surface that to the user and let them
+     run the helper directly.
+
+2. **Call the helper script** with the resolved URL:
    ```bash
-   python ${CLAUDE_SKILL_DIR}/scripts/download_paper.py "<DOI_OR_URL>" --out-dir papers
+   python ${CLAUDE_SKILL_DIR}/scripts/download_paper.py "<URL>" \
+       --out-dir papers --hint "<firstauthor><year>_<shorttitle>"
    ```
-2. Read the JSON output. On `status: "ok"`, report the `local_path`. On `status: "error"`, summarize the attempted URLs and try the fallback workflow below.
-3. If the user gives only a title or citation, search for a DOI or PDF URL first, then pass that result to the helper script.
+   The helper:
+   - Accepts either a direct PDF URL or an HTML page that embeds one
+     (via `<embed>`, `<iframe>`, `<a href>`, or `<object data>`).
+   - Verifies the result is a real PDF (`%PDF` magic bytes).
+   - Outputs JSON: `{"status": "ok"|"dry_run"|"error", "url": ..., "local_path": ..., "bytes": ...}`.
+   - Exits 0 on ok/dry_run, 1 on error.
 
-The helper resolves DOI or URL inputs, extracts embedded PDF links from HTML pages, prints JSON with `status`, `pdf_url`, and `local_path`, and verifies that the downloaded file starts with the PDF magic bytes.
+3. **On `status: ok`** — report the `local_path` to the user.
+   **On `status: error`** — read the message, pick another candidate from
+   step 1, and try again. If every path is exhausted and Unpaywall said
+   `is_oa: false`, the paper is genuinely paywalled with no OA version;
+   stop and tell the user, suggest legitimate alternatives (institutional
+   access via library proxy, ILL, author request).
 
-## Fallback workflow
+## Honest negatives
 
-### 1. Find an open-web source
-Search the web for a freely available copy:
-- Google Scholar / general web search for the title; look for `[PDF]` links
-- Author's personal homepage / institutional page (often hosts preprints)
-- Lab group "Publications" page
-- INSPIRE-HEP, NASA ADS, OSTI, ResearchGate (sometimes), university repositories
+Some papers are genuinely paywalled with no OA copy and not present on
+Sci-Hub. Don't loop endlessly:
+- If Unpaywall says `is_oa: false` AND arXiv search returns nothing AND
+  Sci-Hub returns 403 / "no PDF found" on multiple mirrors → that's the
+  answer. The same scrape harder will not change it.
+- Surface to the user:
+  - The DOI you tried.
+  - Unpaywall's verdict (verbatim if useful).
+  - Suggested next steps: institutional access via proxy, library ILL,
+    author email. For older Nobel-laureate work, direct author request
+    often succeeds within a day.
 
-When a direct PDF URL or article URL turns up, pass it to the helper script.
+## Helper script — what's NOT in it
 
-### 2. arXiv
-Search arXiv by title/author. Useful when the published version is unavailable but a preprint exists:
-- `https://arxiv.org/abs/<id>` → PDF at `https://arxiv.org/pdf/<id>`
-- For papers before ~Aug 1991 (cond-mat launch), arXiv won't have it — stop here and tell the user no PDF was found.
+The helper is deliberately narrow. It does NOT:
+- Resolve DOIs to publisher URLs (publisher URLs are paywalled anyway).
+- Query Unpaywall, Crossref, or arXiv — these are agent-side concerns.
+- Maintain a Sci-Hub mirror list — mirrors change too often for static
+  config; the agent picks one based on current discovery.
 
-## Common publisher PDF locations
+If you find yourself wanting to add discovery logic to the script, stop:
+that's the skill's responsibility, not the script's.
 
-- **Nature / Springer:** "Download PDF"
-- **Science / AAAS:** "PDF" in article tools
-- **ACS:** "PDF" button near title
-- **Elsevier / ScienceDirect:** "Download PDF"
-- **Wiley:** "PDF" in tools section
-- **APS (Physical Review):** "PDF" in article header
-- **World Scientific (Mod. Phys. Lett., Int. J. Mod. Phys.):** "PDF" link
-- **arXiv:** direct PDF link
+## Common publisher PDF locations (cheat sheet for step 1d)
+
+| Publisher | Where the PDF link lives on the article page |
+|---|---|
+| Nature / Springer | "Download PDF" button (top right) |
+| Science / AAAS | "PDF" link in article tools |
+| ACS | "PDF" button near title |
+| Elsevier / ScienceDirect | "Download PDF" (often paywalled but worth a shot) |
+| Wiley | "PDF" in tools section |
+| APS (Phys. Rev. *) | "PDF" in article header — paywalled unless your network has APS sub |
+| World Scientific | "PDF" link |
+| arXiv | `https://arxiv.org/pdf/<id>` directly |
 
 ## Tips
 
-- Always verify the downloaded file is a valid PDF; the helper script checks PDF magic bytes.
-- Save to a meaningful filename: `<firstauthor><year>_<shorttitle>.pdf`.
+- Always save with a meaningful filename: use `--hint "<firstauthor><year>_<shorttitle>"`. The helper will append `.pdf` if missing.
+- The helper verifies PDF magic bytes; if it fails, the URL probably
+  pointed at a publisher's "we couldn't find this" HTML page, not a PDF.
+- For papers before ~Aug 1991 (cond-mat launch on arXiv), arXiv won't
+  have a preprint — go straight to (c) or (e).
