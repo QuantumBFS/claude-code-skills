@@ -1,7 +1,7 @@
 {
   "name": "download-papers",
-  "description": "Download academic papers as PDFs. The agent resolves DOI / title / citation to a candidate URL via Unpaywall, arXiv, author pages, or Sci-Hub; the bundled helper does the narrow fetch-and-verify step.",
-  "version": "0.2.0",
+  "description": "Download academic papers as PDFs given a URL, DOI, title, or arXiv ID. Tries open web → Sci-Hub → arXiv.",
+  "version": "0.1.0",
   "author": {
     "name": "QuantumBFS"
   },
