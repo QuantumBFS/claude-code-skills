@@ -28,6 +28,11 @@
       "name": "distill-feedback-from-history",
       "source": "./plugins/distill-feedback-from-history",
       "description": "Mine your local Claude Code session history for recurring behavioral feedback (corrections, format/voice edicts, error catches, domain-knowledge injections) and distill each pattern into a proposed CLAUDE.md addition, an auto-memory feedback entry, or — only for true workflow patterns — a SKILL.md draft."
+    },
+    {
+      "name": "babysit-cluster-jobs",
+      "source": "./plugins/babysit-cluster-jobs",
+      "description": "Track motivation, watch criteria, and decision rules for long-running cluster jobs in a single BABYSIT.md file on the cluster — so monitoring state survives across sessions, machines, and conversation resets."
     }
   ]
 }
