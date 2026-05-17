@@ -52,8 +52,32 @@ Read–modify–write each invocation. The file is the source of truth; the chat
    - Job in `squeue -u $USER` but not in `BABYSIT.md` → mention to the user, ask if they want to start tracking it (don't add silently)
    - Job in `ACTIVE-ENDED` for >1 session → re-prompt for verdict
 5. **Append** a dated one-line update to each ACTIVE section processed this turn.
-6. **Report** terse: one line per ACTIVE job with status + key metric + any criterion violation; one line per ACTIVE-ENDED job with "awaiting verdict"; brief summary of archived changes.
+6. **Report** to the user using the per-job block format below (see "Report format"). Brief summary of any archived changes goes after the per-job blocks.
 7. **Write back** `BABYSIT.md` (update `Last updated` header + hostname).
+
+## Report format
+
+For each ACTIVE / ACTIVE-ENDED job touched this turn, render a key-value block, jobs separated by a horizontal rule:
+
+```
+Job:         <jobid> <short-name>
+Description: <ONE sentence summarizing content + goal — distilled from the entry's Motivation field>
+Latest:      <current step / metric / phase, in one line>
+Verdict vs watch criteria:  ✓ healthy / ⚠ flag-worthy: <reason> / ⛔ failing: <reason> / ⏳ awaiting verdict
+────────────────────────────────────────
+```
+
+Rules for the Description line:
+- One sentence, ≤ 25 words. Distilled from the entry's `**Motivation:**` field — say what the job is doing AND what question it answers.
+- Stable across reports (don't paraphrase differently each turn). If the Motivation changes mid-run, update the entry first, then mirror.
+- Examples:
+  - ✓ "VMC refinement of gnn_small KL ckpt against full disk-jellium H to test whether VMC descent matches the canonical phys-flow reference."
+  - ✗ "Running VMC." (too vague — doesn't say the goal)
+  - ✗ "Phase 2 of the 3-architecture comparison investigating whether the increased fidelity from the GNN with three-body channel translates to lower variational energy on the bare Coulomb interaction." (too long)
+
+For ACTIVE-ENDED jobs, set `Latest:` to "ENDED at <date>, awaiting verdict" and `Verdict:` to `⏳ awaiting verdict`.
+
+After all per-job blocks: a brief summary line of archived/state-changed jobs this turn (e.g. "Archived: 19638 → COMPLETED-failure. New: 19641 added to ACTIVE.").
 
 ## BABYSIT.md template
 

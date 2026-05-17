@@ -1,7 +1,7 @@
 {
   "name": "babysit-cluster-jobs",
   "description": "Track motivation, watch criteria, and decision rules for long-running cluster jobs in a single BABYSIT.md file on the cluster — so monitoring state survives across sessions, machines, and conversation resets.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "QuantumBFS"
   },
