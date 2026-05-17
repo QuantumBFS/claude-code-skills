@@ -62,10 +62,25 @@ For each ACTIVE / ACTIVE-ENDED job touched this turn, render a key-value block, 
 ```
 Job:         <jobid> <short-name>
 Description: <ONE sentence summarizing content + goal — distilled from the entry's Motivation field>
+Progress:    [████████████░░░░░░░░] <step N/M or phase> (<pct>%)
 Latest:      <current step / metric / phase, in one line>
 Verdict vs watch criteria:  ✓ healthy / ⚠ flag-worthy: <reason> / ⛔ failing: <reason> / ⏳ awaiting verdict
 ────────────────────────────────────────
 ```
+
+Rules for the Progress line:
+- 20-character Unicode block bar: filled = `█` (U+2588), empty = `░` (U+2591). Width is fixed at 20 so columns align across jobs.
+- Number of filled blocks = `round(pct/100 × 20)`. Clamp to [0, 20].
+- Progress signal priority (use the highest available):
+  1. **Step-based**: latest `step N` from log vs total steps M from the entry's `Expected end:` or the submit script (`--steps`). Render as `N/M`.
+     - Example: `[██████████████░░░░░░] 280/400 (70%)`
+  2. **Wallclock fallback** (when no step count is exposed — e.g., MCMC eval): `squeue` `%M` (used) vs `%l` (limit). Render as `Hh MMm / Hh MMm used`.
+     - Example: `[██████░░░░░░░░░░░░░░] 2h36m / 8h00m used (33%)`
+  3. **Phase-based** (analysis jobs with discrete pipeline phases like V_1 → full Coulomb): coarse % per the entry's expected phase ordering.
+     - Example: `[████████░░░░░░░░░░░░] V_1 ✓ → full running (~40%)`
+- For `ACTIVE-ENDED` jobs: render full bar at 100%.
+  - Example: `[████████████████████] 400/400 (100% — ENDED)`
+- Never make up a denominator. If neither step count nor wallclock budget is recoverable, write `[░░░░░░░░░░░░░░░░░░░░] (unknown)` and flag the missing field in the entry's `Updates` line — don't quietly skip the row.
 
 Rules for the Description line:
 - One sentence, ≤ 25 words. Distilled from the entry's `**Motivation:**` field — say what the job is doing AND what question it answers.
