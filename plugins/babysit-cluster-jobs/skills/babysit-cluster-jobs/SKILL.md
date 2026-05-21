@@ -1,189 +1,145 @@
 ---
 name: babysit-cluster-jobs
-description: Use when the user hands over ongoing tracking of running cluster jobs OR asks about the collective status of their tracked jobs. Triggers on phrases like "babysit job <id> for me", "babysit my jobs", "keep watching these", "track these across sessions", "wake me up when X", AND on plural-status queries like "what's happening to my jobs", "any update on my jobs", "how are my tracked jobs doing", "give me a babysit report". Also triggers on un-babysit phrases: "stop babysitting X", "drop X from babysit", "un-babysit X". This skill maintains a tracking file (BABYSIT.md) on the remote cluster's project directory so the same monitoring state survives across sessions, machines, and conversation resets. Do NOT trigger for one-off specific-job status checks ("is 19629 running?"), `tail` requests, job submission, or single-job post-completion analysis — those are normal work.
+description: Use when the user wants a live, auto-refreshing figure of cluster-job state pinned to their screen. Triggers on phrases like "babysit my X plot", "watch X live", "live view of <script>", "keep refreshing <figure>", "babysit scripts/foo.py", "open babysit". Also triggers on stop phrases: "stop babysit", "stop watching", "close the live view". This skill runs a project-owned plotter on the cluster on a recurring schedule, fetches the rendered PNG back to the local machine, and opens it. The plot updates in place as new data arrives on the cluster. Do NOT trigger for one-off plot generation ("run scripts/foo.py once"), status-only queries ("is job 12345 running?"), job submission, or analysis of a finished run — those are normal work.
 user_invocable: true
 allowed-tools:
   - Bash
-  - Edit
-  - Write
   - Read
+  - Write
+  - Edit
 ---
 
-# Babysit Cluster Jobs
+# Babysit Cluster Jobs — Live Figure Mode
+
+## What this skill does
+
+Periodically:
+
+1. Runs a **project-owned plotter** on the cluster (`python <project>/<plotter>`)
+2. Fetches the produced PNG back to the local machine (base64 over the cluster MCP)
+3. `open`s the PNG on macOS so Preview auto-refreshes when the file is overwritten
+
+That's it. No state file, no lifecycle, no archival, no per-job tracking. The
+figure on screen IS the babysit output. The plotter decides what's interesting.
 
 ## Trigger discipline
 
-**Trigger on (any of):**
-- Babysit handoff: "babysit job <id> for me" / "babysit my jobs" / "keep watching these" / "track these across sessions" / "wake me up when …"
-- Plural-status query: "what's happening to my jobs" / "any update on my jobs" / "how are my [babysat|tracked] jobs" / "babysit report"
-- Un-babysit: "stop babysitting X" / "drop X from babysit" / "un-babysit X"
+**Trigger on:**
+- "babysit <path/to/plotter>" / "babysit my X plot" / "watch X live"
+- "live view of <script>" / "keep refreshing <figure>" / "open babysit"
+- Stop phrases: "stop babysit" / "stop watching" / "close the live view"
 
 **Don't trigger on:**
-- Specific-job one-offs: "is 19629 running?", "tail the log for X" → just answer directly
-- Submission help / sbatch questions → not babysitting
-- Single-job retrospective: "what was the result of job 19620 last week?" → if not in BABYSIT.md, just answer; if it is, mention but don't run full sweep
+- "run scripts/foo.py" (one-off, no recurrence)
+- "is job 12345 running?" (status query — answer directly)
+- "submit this sbatch" / sbatch help — not babysitting
+- "what was the result of job 19620?" — finished-run analysis
 
-## Core idea
+## Required context — record on the cluster, never re-prompt
 
-The chat is ephemeral. The cluster filesystem isn't. Persist motivation + watch criteria + decision rules to a single markdown file on the cluster (`<project>/runs/BABYSIT.md`). On the next invocation — same conversation, next morning, different machine — read that file first; everything needed to resume is in it.
+What's being babysat lives **on the cluster**, in a tiny config file at
+`<cluster_project>/runs/babysit.json`. The skill reads it on every invocation
+on any machine — there is no per-machine setup question to answer twice.
 
-## The state file
+Schema:
 
-**Path:** `<cluster project>/runs/BABYSIT.md`.
-If the project's cluster path isn't known yet, ask the user once and save it to memory so future invocations don't need to ask again.
-
-Read–modify–write each invocation. The file is the source of truth; the chat is scratch.
-
-## Workflow each time the skill fires
-
-1. **Read** `BABYSIT.md` (create with empty header if missing).
-2. **Determine intent** from the user's phrasing:
-   - Adding a new job → go to step 3a
-   - Status query on tracked jobs → go to step 3b
-   - Un-babysit a job → go to step 3c
-   3a. **Add new job**: ask for motivation + watch-criteria + decision rule, append an ACTIVE section (don't accept "just monitor it" — push for specifics).
-   3b. **Status sweep** for every ACTIVE-status job:
-   - `squeue -j <id>` — state, used/limit time
-   - `tail` of `.out` and `.err` — latest metric line + any new stderr
-   - Compare against the entry's "Watch for" criteria
-   - If a job is no longer in `squeue` → change its status to `ACTIVE-ENDED`, flag to user as "needs verdict"
-   3c. **Un-babysit**: confirm once with the user, then move the entry to ARCHIVED with `status: DROPPED, reason: "<one-liner>"`. Do NOT delete the entry — the archive line is the audit trail.
-4. **Reconcile** any other discrepancies:
-   - Job in `squeue -u $USER` but not in `BABYSIT.md` → mention to the user, ask if they want to start tracking it (don't add silently)
-   - Job in `ACTIVE-ENDED` for >1 session → re-prompt for verdict
-5. **Append** a dated one-line update to each ACTIVE section processed this turn.
-6. **Report** to the user using the per-job block format below (see "Report format"). Brief summary of any archived changes goes after the per-job blocks.
-7. **Write back** `BABYSIT.md` (update `Last updated` header + hostname).
-
-## Report format
-
-For each ACTIVE / ACTIVE-ENDED job touched this turn, render a key-value block, jobs separated by a horizontal rule:
-
-```
-Job:         <jobid> <short-name>
-Description: <ONE sentence summarizing content + goal — distilled from the entry's Motivation field>
-Progress:    [████████████░░░░░░░░] <step N/M or phase> (<pct>%)
-Latest:      <current step / metric / phase, in one line>
-Verdict vs watch criteria:  ✓ healthy / ⚠ flag-worthy: <reason> / ⛔ failing: <reason> / ⏳ awaiting verdict
-────────────────────────────────────────
+```json
+{
+  "plotter":          "scripts/plot_nct_T001_vs_ed.py",
+  "output_png":       "runs/nct_n4m3/FES_vs_step_T001.png",
+  "interval_seconds": 300,
+  "started_at":       "2026-05-21T15:33:00",
+  "started_on_host":  "macbook-air.local"
+}
 ```
 
-Rules for the Progress line:
-- 20-character Unicode block bar: filled = `█` (U+2588), empty = `░` (U+2591). Width is fixed at 20 so columns align across jobs.
-- Number of filled blocks = `round(pct/100 × 20)`. Clamp to [0, 20].
-- Progress signal priority (use the highest available):
-  1. **Step-based**: latest `step N` from log vs total steps M from the entry's `Expected end:` or the submit script (`--steps`). Render as `N/M`.
-     - Example: `[██████████████░░░░░░] 280/400 (70%)`
-  2. **Wallclock fallback** (when no step count is exposed — e.g., MCMC eval): `squeue` `%M` (used) vs `%l` (limit). Render as `Hh MMm / Hh MMm used`.
-     - Example: `[██████░░░░░░░░░░░░░░] 2h36m / 8h00m used (33%)`
-  3. **Phase-based** (analysis jobs with discrete pipeline phases like V_1 → full Coulomb): coarse % per the entry's expected phase ordering.
-     - Example: `[████████░░░░░░░░░░░░] V_1 ✓ → full running (~40%)`
-- For `ACTIVE-ENDED` jobs: render full bar at 100%.
-  - Example: `[████████████████████] 400/400 (100% — ENDED)`
-- Never make up a denominator. If neither step count nor wallclock budget is recoverable, write `[░░░░░░░░░░░░░░░░░░░░] (unknown)` and flag the missing field in the entry's `Updates` line — don't quietly skip the row.
+On the **first** invocation in a project, the file won't exist. Ask the user
+once for the plotter and output paths (try to infer: if the user said "babysit
+my <X> plot" and there's exactly one plausible `<project>/scripts/plot_*.py`
+matching `<X>`, use it without asking), then write `babysit.json` on the
+cluster. Every later invocation — same machine, different machine, weeks later
+— reads that file and resumes with zero questions.
 
-Rules for the Description line:
-- One sentence, ≤ 25 words. Distilled from the entry's `**Motivation:**` field — say what the job is doing AND what question it answers.
-- Stable across reports (don't paraphrase differently each turn). If the Motivation changes mid-run, update the entry first, then mirror.
-- Examples:
-  - ✓ "VMC refinement of gnn_small KL ckpt against full disk-jellium H to test whether VMC descent matches the canonical phys-flow reference."
-  - ✗ "Running VMC." (too vague — doesn't say the goal)
-  - ✗ "Phase 2 of the 3-architecture comparison investigating whether the increased fidelity from the GNN with three-body channel translates to lower variational energy on the bare Coulomb interaction." (too long)
+You still need to know **which** cluster project the user means. The local
+working directory plus the user's known cluster-path mapping (in `~/.claude`
+memory) resolves this; if the mapping is missing, ask once and save it to
+memory as a `reference` entry. This is a per-user fact, not a per-project one,
+so it's correctly machine-local.
 
-For ACTIVE-ENDED jobs, set `Latest:` to "ENDED at <date>, awaiting verdict" and `Verdict:` to `⏳ awaiting verdict`.
+Default refresh interval: **300 seconds**. User can override ("every 2 min").
 
-After all per-job blocks: a brief summary line of archived/state-changed jobs this turn (e.g. "Archived: 19638 → COMPLETED-failure. New: 19641 added to ACTIVE.").
-
-## BABYSIT.md template
-
-```markdown
-# Babysit log — <project>
-
-_Last updated: <ISO timestamp> from <hostname>_
-
-## ACTIVE
-
-### <jobid> — <short name>  [status: ACTIVE | ACTIVE-ENDED]
-- **Motivation:** <why this is running, user's words>
-- **Watch for:** <signals — thresholds, failure modes, what's interesting>
-- **Expected end:** <wallclock estimate or "step N of M">
-- **Outputs:** <key file path to inspect on completion>
-- **Decision rule:** <what to do if X / if Y>
-- **Updates:**
-  - <YYYY-MM-DD HH:MM>: <one-line observation>
-
-## ARCHIVED (last 30 days, newest first)
-
-- <jobid> <name> — **DROPPED**, reason: "<one-liner>" (archived <date>)
-- <jobid> <name> — **COMPLETED-success**: <key result> (ended <date>)
-- <jobid> <name> — **COMPLETED-failure**: <how it failed> (ended <date>)
-- <jobid> <name> — **COMPLETED-partial**: <what worked / didn't> (ended <date>)
-```
-
-**Lifecycle states:**
+## Refresh cycle (one tick)
 
 ```
-ACTIVE (still in squeue)
-   │
-   ├──► ACTIVE-ENDED (not in squeue, awaiting verdict)
-   │        │
-   │        └──► ARCHIVED { COMPLETED-{success|failure|partial} }
-   │
-   └──► ARCHIVED { DROPPED, reason: "..." }   ← user said "stop babysitting"
+1. Run plotter on cluster:
+     cluster_exec:
+       export PATH=/opt/data/hpc/common/softwares/anaconda3/bin:$PATH
+       cd <cluster_project>
+       python <plotter>
+
+2. Encode PNG over the wire:
+     cluster_exec: base64 -w0 <cluster_project>/<output_png>
+     # Result is large; the harness saves it to a tool-result file.
+     # Parse the b64 from that file with the Bash tool.
+
+3. Decode + write local mirror:
+     local path = <local_project>/<output_png>     # same relative path
+     mkdir -p its parent, write the decoded bytes
+
+4. Open (first tick only):
+     /usr/bin/open <local_path>            # macOS — Preview auto-refreshes
+     xdg-open <local_path>                 # linux
+
+5. Schedule next tick:
+     ScheduleWakeup(
+       delaySeconds = <interval>,
+       prompt       = the same "babysit ..." input,
+       reason       = "live figure refresh"
+     )
 ```
 
-## When adding a new job, require from the user
+Subsequent ticks: skip step 4. Preview reloads in place when the file changes.
 
-Don't accept "just monitor it" — push for specifics:
-- **Motivation:** the WHY in their words
-- **Watch for:** what would they want to know first thing tomorrow?
-- **Decision rule:** what to do if it crashes / what to do if a metric blows up
+## Cross-machine transferability
 
-If they genuinely don't have a criterion: write "no specific watch — confirm it doesn't crash and report final result." That's still a valid criterion; don't leave the field blank.
+This is the whole point of how the pieces are split:
 
-## When a tracked job ends naturally
+| Piece | Location | How it survives a machine switch |
+|---|---|---|
+| **Skill prose** (this file) | QuantumBFS plugin git repo | `git pull` on the new machine |
+| **Plotter** (`scripts/plot_*.py`) | Project repo's clone **on the cluster** | Already there — runs server-side, no local Python env needed |
+| **Source data** (`runs/.../data.txt`) | Cluster filesystem | Authoritative copy; never edited locally |
+| **What's being babysat** (plotter, output_png, interval) | Cluster (`<project>/runs/babysit.json`) | Read fresh on every invocation; nothing to re-type after a machine switch |
+| **PNG** | Local `<project>/<output_png>` | Regenerated each tick from cluster state — no sync |
+| **The recurring loop itself** | `CronCreate` (this Claude Code session) or `ScheduleWakeup` (in /loop dynamic mode) | Dies when the session ends. On a new machine, user says "babysit" and the skill reads `babysit.json` and re-arms the cron — same recipe, no re-config |
 
-Don't auto-archive. On next babysit check, the job's status flips to `ACTIVE-ENDED` and the report flags "<jobid> needs verdict". Pull the final result line, ask the user:
-1. Does the outcome match the hypothesis?
-2. What's the verdict (one line)?
-3. Archive as COMPLETED-{success|failure|partial}, or keep in ACTIVE-ENDED for further analysis?
+The deliberate split: **the only thing a new machine needs is `git pull` of the
+QuantumBFS plugin and `git pull` of the project (so the local PNG mirror has a
+parent dir to land in)**. Everything else — including what's being babysat —
+is pulled from cluster state on demand.
 
-Move from ACTIVE-ENDED → ARCHIVED only on confirmation.
+## Stop
 
-## When the user says "un-babysit" / "stop babysitting X"
-
-1. Confirm once: "Confirm: drop <jobid> <name> from active tracking? Reason?"
-2. On confirmation, move the entry to ARCHIVED with `status: DROPPED, reason: "<user's words>"`
-3. The job may still be running on the cluster — un-babysit only stops *tracking*, it does NOT cancel the slurm job. If the user wants to cancel, that's a separate `scancel`.
-4. If reason isn't given, accept a generic one but record it: e.g., "no longer of interest".
-
-## Cross-session recovery
-
-When invoked cold (next morning / different machine):
-1. Read `BABYSIT.md` from cluster.
-2. `squeue -u $USER` — diff against the ACTIVE list.
-3. Report:
-   - **Still running, tracked:** <list, one-line latest>
-   - **Tracked but ended:** <list — needs verdict>
-   - **Running but untracked:** <list — should I track?>
-4. Let the user direct from there.
+When the user says "stop babysit" / "stop watching":
+1. Do NOT schedule another wakeup.
+2. Report: "live view stopped; last PNG left at `<local_path>`."
+3. The Preview window stays open with the last refresh; user closes it themselves.
 
 ## Anti-patterns
 
 | Don't | Do |
 |---|---|
-| Trigger on "is job X running?" | Just answer; don't run full babysit sweep |
-| Infer motivation from script comments | Ask the user explicitly the first time |
-| Auto-archive ended jobs | Move to ACTIVE-ENDED, ask for verdict |
-| Delete an entry on un-babysit | Move to ARCHIVED with `DROPPED` status + reason |
-| Store state on this laptop | Always cluster-side at `<project>/runs/BABYSIT.md` |
-| Poll repeatedly inside one turn | Read once, check once, write back, stop |
-| Add a job to ACTIVE without watch criteria | Push for specifics or write "no specific watch" |
-| Confuse un-babysit with `scancel` | Un-babysit only stops tracking; the slurm job keeps running unless separately cancelled |
+| Sync `data.txt` files from cluster to local before plotting | Run the plotter ON the cluster; only the PNG crosses the wire |
+| Ship a generic dashboard renderer with the skill | The plotter is the project's responsibility — each project knows what's interesting |
+| Save a giant tracking-state file (BABYSIT.md, job lifecycle) | This skill is the figure-on-screen, nothing else. If the user wants per-job tracking, that's not this skill anymore |
+| Re-open the PNG every tick (will pop a new window) | `open` once on first tick; later ticks just overwrite the file and Preview reloads |
+| Poll faster than the plotter's own update cadence | Default 300s. The user's jobs typically log ~once per minute; a faster refresh just wastes cluster CPU on identical figures |
+| Schedule a wakeup after a "stop" | "Stop" means the loop ends |
 
 ## Red flags — STOP
 
-- About to call `squeue` before reading `BABYSIT.md` → read it first
-- About to claim a status without an entry in `BABYSIT.md` for that job → either decline (one-off check) or ask user to add it
-- `BABYSIT.md` `Last updated` > 24 h old with jobs still in ACTIVE → reconcile against `squeue` before reporting
-- About to write a metric into chat that isn't in `BABYSIT.md` → put it in the job's `Updates` line first
+- About to write a Python plotter inside the skill → no; the plotter is the project's, on the cluster
+- About to fetch `data.txt` files individually → no; run the plotter on the cluster
+- About to put `BABYSIT.md` back → no; this skill is intentionally stateless
+- About to schedule a wakeup faster than ~60s → check with the user; cluster CPU isn't free
+- About to do anything other than (run plotter → fetch PNG → open → reschedule) → stop and re-read this skill
