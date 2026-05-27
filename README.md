@@ -13,6 +13,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install verify-references@quantum-bfs
 /plugin install paper-review-checklist@quantum-bfs
 /plugin install distill-feedback-from-history@quantum-bfs
+/plugin install digitize-plots@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -79,6 +80,14 @@ Invoke by asking to *"distill recurring feedback from my sessions"* / *"what sho
 
 **Note:** This plugin replaces the earlier `extract-skills-from-history`, which mis-rendered behavioral rules as standalone `SKILL.md` files. The new name and bucketed output reflect that most patterns mined this way are memories, not skills.
 
+### `digitize-plots`
+
+Extract numeric `(x, y)` data from a plot/figure image — including a figure inside a PDF — into a CSV. The command-line counterpart to [WebPlotDigitizer](https://automeris.io), which is GUI-only.
+
+The bundled `digitize.py` wraps the `plotdigitizer` CLI and hides its two silent footguns (it int-truncates fractional calibration values, and it expects bottom-origin pixel-y), then adds the surrounding workflow: `render` a PDF page to PNG, `inspect` to read calibration ticks off zoomed margins, and `extract` with optional single-series color isolation and a verification overlay. The whole job is usually two or three commands.
+
+Invoke by asking to *"digitize this plot"*, *"extract the data/curve from this figure"*, *"read the points off this chart"*, or *"WebPlotDigitizer but from the CLI"*. Requires Python 3 with `plotdigitizer`, `numpy`, and `Pillow` (`pip install plotdigitizer numpy Pillow`); PDF rendering uses PyMuPDF or the `pdftoppm` binary.
+
 ## Repository layout
 
 ```
@@ -102,14 +111,19 @@ Invoke by asking to *"distill recurring feedback from my sessions"* / *"what sho
     ├── paper-review-checklist/
     │   ├── .claude-plugin/plugin.json
     │   └── skills/paper-review-checklist/SKILL.md
-    └── distill-feedback-from-history/
+    ├── distill-feedback-from-history/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/distill-feedback-from-history/
+    │       ├── SKILL.md
+    │       └── scripts/
+    │           ├── extract_turns.py
+    │           ├── tag_turns.py
+    │           └── write_artifact.py
+    └── digitize-plots/
         ├── .claude-plugin/plugin.json
-        └── skills/distill-feedback-from-history/
+        └── skills/digitize-plots/
             ├── SKILL.md
-            └── scripts/
-                ├── extract_turns.py
-                ├── tag_turns.py
-                └── write_artifact.py
+            └── scripts/digitize.py
 ```
 
 Helper scripts shipped alongside a `SKILL.md` are referenced from the skill instructions via `${CLAUDE_SKILL_DIR}`, which Claude Code expands to the skill's install directory at invocation time.
