@@ -1,0 +1,11 @@
+{
+  "name": "digitize-plots",
+  "description": "Extract numeric (x, y) data from a plot/figure image (or a figure inside a PDF) into CSV — a CLI alternative to WebPlotDigitizer. Wraps plotdigitizer, hiding its integer-truncation and pixel-origin footguns, and bundles PDF rendering, color isolation, and overlay verification.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lei Wang"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}
