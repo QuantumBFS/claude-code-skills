@@ -1,0 +1,11 @@
+{
+  "name": "claude-log-restore",
+  "description": "Recover context from Claude Code session transcripts: locate a session by hash/UUID prefix or project path, search ~/.claude/projects JSONL logs for handoff notes, summaries, and next steps, and print an approximate resume command. Ships a dependency-free streaming helper safe for multi-MB transcripts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Qi Yang"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}

@@ -38,6 +38,11 @@
       "name": "digitize-plots",
       "source": "./plugins/digitize-plots",
       "description": "Extract numeric (x, y) data from a plot/figure image (or a PDF figure) into CSV — a CLI alternative to WebPlotDigitizer. Wraps plotdigitizer with PDF rendering, color isolation, and overlay verification."
+    },
+    {
+      "name": "claude-log-restore",
+      "source": "./plugins/claude-log-restore",
+      "description": "Recover context from Claude Code session transcripts: locate a session by hash/UUID prefix or project path, mine ~/.claude/projects JSONL logs for handoff notes, summaries, and next steps, and print an approximate resume command. Ships a dependency-free streaming helper safe for multi-MB transcripts."
     }
   ]
 }
