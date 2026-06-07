@@ -14,6 +14,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install paper-review-checklist@quantum-bfs
 /plugin install distill-feedback-from-history@quantum-bfs
 /plugin install digitize-plots@quantum-bfs
+/plugin install claude-log-restore@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -88,6 +89,14 @@ The bundled `digitize.py` wraps the `plotdigitizer` CLI and hides its two silent
 
 Invoke by asking to *"digitize this plot"*, *"extract the data/curve from this figure"*, *"read the points off this chart"*, or *"WebPlotDigitizer but from the CLI"*. Requires Python 3 with `plotdigitizer`, `numpy`, and `Pillow` (`pip install plotdigitizer numpy Pillow`); PDF rendering uses PyMuPDF or the `pdftoppm` binary.
 
+### `claude-log-restore`
+
+Recover context from Claude Code session transcripts. Claude Code stores each session as a local JSONL file under `~/.claude/projects/<encoded-project-path>/<session-id>.jsonl`; this skill locates the right one and mines it.
+
+The bundled `claude_log_restore.py` is dependency-free and streams JSONL line by line, so it stays safe on multi-MB transcripts. It can list recent sessions for a project, find a session by partial UUID/hash (`--all-projects`), search for keywords (`-q`), or surface handoff/summary/next-step notes (`--handoff`), printing the transcript path, session id, an approximate `claude --resume` command, and selected snippets (`--json` for machine-readable output). It reads and summarizes only — in-session code/conversation restore is still done with `/rewind` inside Claude Code.
+
+Invoke by asking to *"restore my Claude session"*, *"find the handoff notes from last time"*, *"resume session 13e617"*, or *"what were the next steps in this project's history?"*. Requires Python 3; no network calls, no dependencies.
+
 ## Repository layout
 
 ```
@@ -119,11 +128,16 @@ Invoke by asking to *"digitize this plot"*, *"extract the data/curve from this f
     │           ├── extract_turns.py
     │           ├── tag_turns.py
     │           └── write_artifact.py
-    └── digitize-plots/
+    ├── digitize-plots/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/digitize-plots/
+    │       ├── SKILL.md
+    │       └── scripts/digitize.py
+    └── claude-log-restore/
         ├── .claude-plugin/plugin.json
-        └── skills/digitize-plots/
+        └── skills/claude-log-restore/
             ├── SKILL.md
-            └── scripts/digitize.py
+            └── scripts/claude_log_restore.py
 ```
 
 Helper scripts shipped alongside a `SKILL.md` are referenced from the skill instructions via `${CLAUDE_SKILL_DIR}`, which Claude Code expands to the skill's install directory at invocation time.
