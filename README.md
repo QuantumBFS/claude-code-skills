@@ -15,6 +15,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install distill-feedback-from-history@quantum-bfs
 /plugin install digitize-plots@quantum-bfs
 /plugin install claude-log-restore@quantum-bfs
+/plugin install download-koushare-lectures@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -97,6 +98,14 @@ The bundled `claude_log_restore.py` is dependency-free and streams JSONL line by
 
 Invoke by asking to *"restore my Claude session"*, *"find the handoff notes from last time"*, *"resume session 13e617"*, or *"what were the next steps in this project's history?"*. Requires Python 3; no network calls, no dependencies.
 
+### `download-koushare-lectures`
+
+Download a video lecture from [koushare.com](https://www.koushare.com) (蔻享学术) for offline use. The lecture *pages* sit behind a Tencent EdgeOne bot wall (a JS cookie challenge, then a "Security Verification" CAPTCHA), so `curl` and `yt-dlp` bounce off them. But the *video* streams from a Tencent VOD CDN protected only by a signed token in the URL — the skill's core move is to capture that `.m3u8` URL from a real browser (user-driven DevTools, or the claude-in-chrome extension) and download it.
+
+The stream is standard AES-128 HLS (Tencent's `voddrm.token` "SimpleAES" — clientside key encryption, **not** license-server DRM), so `yt-dlp --concurrent-fragments 8` / `ffmpeg -c copy` decrypt and mux it natively. Includes the concrete landmarks (`api-core.koushare.com/live/v2/live/playbackV2`, the `~12h` token expiry, `video-play.koushare.com` CDN) and the dead-ends to skip (forging the `EO_Bot_Ssid` cookie, solving the CAPTCHA).
+
+Invoke by asking to *"download this koushare lecture"* / *"save this 蔻享 video"*. Requires `yt-dlp` and `ffmpeg` (auto-installed if missing). For your own content or with the rights holder's permission.
+
 ## Repository layout
 
 ```
@@ -133,11 +142,14 @@ Invoke by asking to *"restore my Claude session"*, *"find the handoff notes from
     │   └── skills/digitize-plots/
     │       ├── SKILL.md
     │       └── scripts/digitize.py
-    └── claude-log-restore/
+    ├── claude-log-restore/
+    │   ├── .claude-plugin/plugin.json
+    │   └── skills/claude-log-restore/
+    │       ├── SKILL.md
+    │       └── scripts/claude_log_restore.py
+    └── download-koushare-lectures/
         ├── .claude-plugin/plugin.json
-        └── skills/claude-log-restore/
-            ├── SKILL.md
-            └── scripts/claude_log_restore.py
+        └── skills/download-koushare-lectures/SKILL.md
 ```
 
 Helper scripts shipped alongside a `SKILL.md` are referenced from the skill instructions via `${CLAUDE_SKILL_DIR}`, which Claude Code expands to the skill's install directory at invocation time.

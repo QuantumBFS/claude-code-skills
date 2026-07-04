@@ -1,0 +1,11 @@
+{
+  "name": "download-koushare-lectures",
+  "description": "Download a video lecture from koushare.com (蔻享学术). The page sits behind a Tencent EdgeOne bot/CAPTCHA wall, but the video is a token-signed Tencent VOD HLS stream (voddrm.token, SimpleAES AES-128) — capture that CDN URL via a real browser and decrypt it with yt-dlp/ffmpeg.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lei Wang"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}

@@ -43,6 +43,11 @@
       "name": "claude-log-restore",
       "source": "./plugins/claude-log-restore",
       "description": "Recover context from Claude Code session transcripts: locate a session by hash/UUID prefix or project path, mine ~/.claude/projects JSONL logs for handoff notes, summaries, and next steps, and print an approximate resume command. Ships a dependency-free streaming helper safe for multi-MB transcripts."
+    },
+    {
+      "name": "download-koushare-lectures",
+      "source": "./plugins/download-koushare-lectures",
+      "description": "Download a video lecture from koushare.com (蔻享学术). The page sits behind a Tencent EdgeOne bot/CAPTCHA wall, but the video is a token-signed Tencent VOD HLS stream (voddrm.token, SimpleAES AES-128) — capture that CDN URL via a real browser and decrypt it with yt-dlp/ffmpeg."
     }
   ]
 }
