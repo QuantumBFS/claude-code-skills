@@ -16,6 +16,7 @@ In Claude Code, add this repo as a marketplace, then install whichever plugin(s)
 /plugin install digitize-plots@quantum-bfs
 /plugin install claude-log-restore@quantum-bfs
 /plugin install download-koushare-lectures@quantum-bfs
+/plugin install edit-pptx-decks@quantum-bfs
 ```
 
 The `@quantum-bfs` suffix matches the `name` field in `.claude-plugin/marketplace.json`.
@@ -105,6 +106,31 @@ Download a video lecture from [koushare.com](https://www.koushare.com) (蔻享�
 The stream is standard AES-128 HLS (Tencent's `voddrm.token` "SimpleAES" — clientside key encryption, **not** license-server DRM), so `yt-dlp --concurrent-fragments 8` / `ffmpeg -c copy` decrypt and mux it natively. Includes the concrete landmarks (`api-core.koushare.com/live/v2/live/playbackV2`, the `~12h` token expiry, `video-play.koushare.com` CDN) and the dead-ends to skip (forging the `EO_Bot_Ssid` cookie, solving the CAPTCHA).
 
 Invoke by asking to *"download this koushare lecture"* / *"save this 蔻享 video"*. Requires `yt-dlp` and `ffmpeg` (auto-installed if missing). For your own content or with the rights holder's permission.
+
+### `edit-pptx-decks`
+
+Edit, polish, and audit PowerPoint `.pptx` decks from the command line: a
+render-and-verify loop (LibreOffice → PDF → PNG, with font substitution chosen
+from the *system* font set rather than the larger set PowerPoint sees), geometry
+measured off the rendered page in centimetres, and in-place figure replacement
+that preserves relationships, z-order, and crops.
+
+Its `audit` subcommand targets the defects a headless preview cannot show,
+because LibreOffice papers over them and PowerPoint does not:
+
+- `<p:blipFill>` with no `<a:stretch>` — PowerPoint draws the picture at native size
+- pictures whose visible pixels (after `srcRect` cropping) do not match their frame
+- dangling relationships and stale content-type defaults
+- TIFF parts, poorly supported by PowerPoint on Windows (`tiff2png` re-encodes them losslessly)
+- fonts that will be substituted, distinguishing `<a:sym>` (harmless) from `<a:latin>`/`<a:ea>`
+
+Also covers inserting native OMML equations, which `python-pptx` cannot do, and
+why they can never be sized from the preview.
+
+Triggers on phrases like *"fix the layout on slide 3"*, *"replace this figure in
+the deck"*, *"the logo is distorted in PowerPoint"*, *"check the deck before I
+present"*.
+
 
 ## Repository layout
 

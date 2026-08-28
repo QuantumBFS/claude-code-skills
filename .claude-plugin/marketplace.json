@@ -48,6 +48,11 @@
       "name": "download-koushare-lectures",
       "source": "./plugins/download-koushare-lectures",
       "description": "Download a video lecture from koushare.com (蔻享学术). The page sits behind a Tencent EdgeOne bot/CAPTCHA wall, but the video is a token-signed Tencent VOD HLS stream (voddrm.token, SimpleAES AES-128) — capture that CDN URL via a real browser and decrypt it with yt-dlp/ffmpeg."
+    },
+    {
+      "name": "edit-pptx-decks",
+      "source": "./plugins/edit-pptx-decks",
+      "description": "Edit and audit PowerPoint .pptx decks: a headless render-and-verify loop with correct font substitution, plus fixes for defects that only surface in PowerPoint (blipFill without a stretch, aspect distortion, stripped slide-number fallbacks, TIFF portability) and native OMML equation insertion."
     }
   ]
 }

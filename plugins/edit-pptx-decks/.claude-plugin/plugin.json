@@ -1,0 +1,11 @@
+{
+  "name": "edit-pptx-decks",
+  "description": "Edit and audit PowerPoint .pptx decks programmatically: a headless render-and-verify loop (LibreOffice → PDF → PNG) with automatic font substitution, plus fixes for the failure modes that only surface once PowerPoint opens the file — stripped slide-number fallbacks, blipFill without a stretch, aspect-ratio distortion, wrap=\"none\" overflow, and TIFF portability. Also covers inserting native OMML equations, which python-pptx cannot do.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lei Wang"
+  },
+  "homepage": "https://github.com/QuantumBFS/claude-code-skills",
+  "repository": "https://github.com/QuantumBFS/claude-code-skills.git",
+  "license": "MIT"
+}
