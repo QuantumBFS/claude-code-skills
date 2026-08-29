@@ -367,12 +367,14 @@ def cmd_audit(args) -> None:
     problems += bad
 
     print()
-    print("== slide-number fields without an <a:t> fallback (informational) ==")
-    print("  PowerPoint evaluates the field, and so do renderers that understand")
-    print("  type=\"slidenum\". Ones that do not fall back to the literal <a:t>,")
-    print("  and show a blank when it is absent. python-pptx edits and hand-rolled")
-    print("  XML rewrites routinely strip it. Trust the rendered PDF, not this")
-    print("  count: run `render` and read the numbers off the page.")
+    print("== slide-number fields without an <a:t> fallback ==")
+    print("  PowerPoint computes the number from the field and ignores the")
+    print("  literal, so this is invisible there. LibreOffice does NOT evaluate")
+    print("  the field - it prints the literal - so every headless render and")
+    print("  every exported PDF shows a blank page number without it. Both")
+    print("  python-pptx saves and hand-rolled XML rewrites strip it, so re-run")
+    print("  `fix-nums` after every write, and again after reordering slides")
+    print("  (the literal goes stale).")
     missing_t = []
     with zipfile.ZipFile(path) as z:
         for n in sorted(z.namelist()):
@@ -384,6 +386,7 @@ def cmd_audit(args) -> None:
                 if "<a:t>" not in fld:
                     missing_t.append(int(m.group(1)))
     print(" ", sorted(set(missing_t)) or "none")
+    problems += bool(missing_t)
 
     print()
     print("== fonts (as PowerPoint sees them, Office-bundled ones included) ==")

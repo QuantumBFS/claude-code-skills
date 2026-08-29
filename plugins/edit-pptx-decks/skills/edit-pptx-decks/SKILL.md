@@ -192,12 +192,16 @@ with a raster fallback — expect the file to grow, and do not delete the
 fallback.
 
 **Slide-number fields.** A `<a:fld type="slidenum">` carries a literal `<a:t>`
-fallback. PowerPoint computes the number and ignores it; renderers that do not
-understand the field show a blank without it, and `python-pptx` saves and
-hand-rolled XML rewrites both strip it. `python $S fix-nums deck.pptx` puts it
-back — run it **last, after every write**. One caveat: the literal goes stale
-if slides are reordered, so re-run it then too, and trust the rendered PDF over
-the literal.
+fallback. PowerPoint computes the number from the field and ignores the
+literal — but **LibreOffice does not evaluate the field at all**, it prints the
+literal, so without it every headless render and every exported PDF shows a
+blank page number. Both `python-pptx` saves and hand-rolled XML rewrites strip
+it. `python $S fix-nums deck.pptx` puts it back — run it **last, after every
+write**, and again after reordering slides, since the literal then goes stale.
+
+This one bites twice: because the numbers are fine in PowerPoint, a page-number
+regression is invisible to the user and only shows up in your own preview,
+where it is easy to dismiss as a rendering artifact. It is not.
 
 ## Working alongside the user
 
